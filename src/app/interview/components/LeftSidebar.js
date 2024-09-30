@@ -5,7 +5,7 @@ import { FaHome, FaInbox, FaUserAlt, FaChartBar, FaCogs, FaQuestionCircle } from
 import { IoMdClose, IoMdMenu } from 'react-icons/io';
 
 const Sidebar = () => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);

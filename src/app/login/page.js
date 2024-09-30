@@ -1,14 +1,35 @@
 'use client'
 
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { auth } from "../firebase"
 import {toast } from "react-toastify"
+import { ReceiptEuro } from "lucide-react";
+import { useUserStore } from "../userstore";
 
 export default function Page() {
   const [email, setEmail] = useState(""); // State for email
   const [password, setPassword] = useState(""); // State for password
+
+
+  const {currentUser, isLoading, fetchUserInfo} = useUserStore()
+
+
+  useEffect(()=>{
+    const unSub = onAuthStateChanged(auth, (user)=>{
+      console.log(user.uid);
+      fetchUserInfo(user.uid);
+    });
+
+    return () => {
+      unSub();
+    }
+  }, [fetchUserInfo]);
+
+  console.log(currentUser);
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,6 +47,13 @@ export default function Page() {
     // console.log("Email:", email);
     // console.log("Password:", password);
   };
+
+  if(isLoading) return (
+    <div>
+      Loading
+    </div>
+  )
+
 
   return (
     <div className="bg-black p-8 text-center text-white h-screen flex flex-col justify-center items-center w-screen">

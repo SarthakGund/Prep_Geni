@@ -28,6 +28,7 @@ export default function Page() {
           domain: '',
           experience: '',
         });
+        window.location.href = "/userform";
         console.log("registered")
         // toast.success("User registered successfully", { position: "top-center" }); // Success toast
       }

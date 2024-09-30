@@ -60,29 +60,6 @@ export default function ChatWindow() {
             <span className="text-xs text-gray-200">02:16</span>
           </div>
         </div>
-        <div className="flex items-start">
-          <img
-            className="h-8 w-8 rounded-full"
-            src="https://randomuser.me/api/portraits/men/41.jpg"
-            alt="Glenn Fisher"
-          />
-          <div className="ml-3 bg-gray-700 p-2 rounded-lg max-w-xs">
-            <p className="text-white">Hey, Devon, can you choose your role?</p>
-
-            {/* Dropdown as a message */}
-            <div className="mt-2">
-              <select className="bg-gray-800 text-white px-4 py-2 rounded-md border border-gray-600 focus:outline-none">
-                <option value="">Select job role</option>
-                <option value="web-developer">Web Developer</option>
-                <option value="data-scientist">Data Scientist</option>
-                <option value="designer">Designer</option>
-                {/* Add more job roles as needed */}
-              </select>
-            </div>
-
-            <span className="text-xs text-gray-400">02:17</span>
-          </div>
-        </div>
 
         <div className="flex items-start">
           <img
