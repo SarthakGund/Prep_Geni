@@ -7,26 +7,29 @@ import React, { useState, useEffect, useRef } from "react";
 
 export default function Page() {
   const [isListening, setIsListening] = useState(false);
-  const [isCameraOn, setIsCameraOn] = useState(false); // Track camera state
+  const [isCameraOn, setIsCameraOn] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
-  const [messages, setMessages] = useState([]); // For chat messages
-  const username = "User"; // Set the username
-  const videoRef = useRef(null); // Reference to the video element
-  const streamRef = useRef(null); // Reference to the video stream
+  const [messages, setMessages] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState("");
+  const [isInterviewStarted, setIsInterviewStarted] = useState(false);
+  const [isInterviewComplete, setIsInterviewComplete] = useState(false);
+  const username = "User";
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const recognitionRef = useRef(null);
 
-  // Initialize SpeechRecognition
   useEffect(() => {
     window.SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if ("SpeechRecognition" in window) {
-      const recognition = new window.SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
+      recognitionRef.current = new window.SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = "en-US";
 
-      recognition.onresult = (event) => {
+      recognitionRef.current.onresult = (event) => {
         let finalTranscript = "";
         let interimText = "";
 
@@ -34,37 +37,34 @@ export default function Page() {
           const result = event.results[i];
           if (result.isFinal) {
             finalTranscript += result[0].transcript;
-
-            // Simulate delay before adding message to chat
-            setTimeout(() => {
-              setMessages((prevMessages) => [
-                ...prevMessages,
-                { user: username, text: finalTranscript },
-              ]);
-            }, 1000); // Adjust delay as needed (1000ms = 1 second)
+            setTranscript((prev) => prev + finalTranscript);
           } else {
             interimText += result[0].transcript;
           }
         }
-        setTranscript((prev) => prev + finalTranscript);
+        
         setInterimTranscript(interimText);
       };
 
-      recognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
+      recognitionRef.current.onend = () => {
+        if (isListening) {
+          recognitionRef.current.start();
+        }
       };
 
-      if (isListening) {
-        recognition.start();
-      } else {
-        recognition.stop();
-      }
-
-      return () => {
-        recognition.stop();
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
       };
     } else {
       console.error("Speech Recognition is not supported in this browser.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isListening) {
+      recognitionRef.current.start();
+    } else {
+      recognitionRef.current.stop();
     }
   }, [isListening]);
 
@@ -74,16 +74,15 @@ export default function Page() {
 
   const toggleCamera = async () => {
     if (isCameraOn) {
-      // Stop the camera feed
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
       setIsCameraOn(false);
     } else {
-      // Start the camera feed
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
+          audio: false,  // Disable audio if not needed
         });
         streamRef.current = stream;
         if (videoRef.current) {
@@ -92,24 +91,84 @@ export default function Page() {
         setIsCameraOn(true);
       } catch (error) {
         console.error("Error accessing webcam:", error);
+        alert("Failed to access webcam. Make sure permissions are granted.");
       }
+    }
+  };
+  
+
+  const startInterview = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/start_interview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: 'user123', // Replace with actual user ID
+          role: 'Software Developer', // Replace with actual role
+          domain: 'Web Development', // Replace with actual domain
+          experience: '3 years' // Replace with actual experience
+        }),
+      });
+      const data = await response.json();
+      setCurrentQuestion(data.firstQuestion);
+      setIsInterviewStarted(true);
+      setMessages([{ interviewer: data.firstQuestion }]);
+    } catch (error) {
+      console.error('Error starting interview:', error);
+    }
+  };
+
+  const submitAnswer = async () => {
+    if (!transcript.trim()) return;
+
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { user: username, text: transcript },
+    ]);
+
+    try {
+      const response = await fetch('http://localhost:5000/next_question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: 'user123', // Replace with actual user ID
+          userResponse: transcript
+        }),
+      });
+      const data = await response.json();
+      
+      if (data.nextQuestion) {
+        setCurrentQuestion(data.nextQuestion);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { interviewer: data.nextQuestion },
+        ]);
+      } else {
+        setIsInterviewComplete(true);
+      }
+
+      setTranscript("");
+      setInterimTranscript("");
+    } catch (error) {
+      console.error('Error submitting answer:', error);
     }
   };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <Head>
-        <title>Video Call</title>
+        <title>Video Interview</title>
       </Head>
 
-      {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left section - video grid */}
         <div className="flex-1 p-4 flex justify-center items-center">
-          {/* Video panel for live feed */}
           <div
-            className="relative bg-gray-800 rounded-lg aspect-video w-full h-96 cursor-pointer"
-            onClick={toggleCamera} // Toggle camera on click
+            className="relative bg-gray-800 rounded-lg aspect-video w-full h-full cursor-pointer"
+            onClick={toggleCamera}
           >
             <video
               ref={videoRef}
@@ -120,7 +179,6 @@ export default function Page() {
             <div className="absolute bottom-2 left-2 text-sm flex items-center">
               <span>{username}</span>
               <span className="ml-2 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                {/* Mic icon */}
                 <svg
                   className="w-2.5 h-2.5 text-white"
                   xmlns="http://www.w3.org/2000/svg"
@@ -134,42 +192,56 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Right section - chat box */}
         <div className="w-80 bg-gray-900 p-4 flex flex-col">
           <div className="flex items-center justify-between border-b border-gray-700 pb-2 mb-2">
-            <div className="text-lg font-semibold">Chat</div>
-            <div className="flex">
-              <div className="px-4 py-2 cursor-pointer text-blue-500">Chat</div>
-              <div className="px-4 py-2 cursor-pointer">Participants</div>
-            </div>
+            <div className="text-lg font-semibold">Interview</div>
           </div>
 
-          {/* Chat content */}
           <div className="flex-1 overflow-y-auto">
             {messages.map((msg, index) => (
               <div key={index} className="text-white mb-2">
-                <strong>{msg.user}: </strong> {msg.text}
+                <strong>{msg.user || 'Interviewer'}: </strong> {msg.text || msg.interviewer}
               </div>
             ))}
+            {interimTranscript && (
+              <div className="text-gray-400 italic">{interimTranscript}</div>
+            )}
           </div>
 
-          {/* Message input */}
-          <div className="mt-4 flex items-center border-t border-gray-700 pt-2">
-            <input
-              type="text"
-              className="flex-1 bg-gray-800 p-2 rounded-lg outline-none"
-              placeholder="Type a message"
-            />
-            <button className="ml-2 bg-blue-600 p-2 rounded-lg">
-              <Image src="/assets/send_msg.svg" alt="" width={26} height={26} />
+          {!isInterviewStarted && (
+            <button
+              onClick={startInterview}
+              className="mt-4 w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition duration-300"
+            >
+              Start Interview
             </button>
-          </div>
+          )}
+
+          {isInterviewStarted && !isInterviewComplete && (
+            <div className="mt-4">
+              <p className="mb-2 font-semibold">Current Question:</p>
+              <p className="mb-4">{currentQuestion}</p>
+              <button
+                onClick={submitAnswer}
+                className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 transition duration-300"
+                disabled={!transcript.trim()}
+              >
+                Submit Answer
+              </button>
+            </div>
+          )}
+
+          {isInterviewComplete && (
+            <div className="mt-4 text-center">
+              <p className="font-semibold">Interview Completed</p>
+              <p>Thank you for your participation!</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom bar */}
       <div className="bg-gray-900 p-4 flex justify-center items-center space-x-4">
-        <button className="p-2 bg-gray-800 rounded-full">
+        <button className="p-2 bg-gray-800 rounded-full" onClick={toggleCamera}>
           <svg
             className="w-6 h-6"
             fill="none"

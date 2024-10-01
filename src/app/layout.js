@@ -25,12 +25,12 @@ const Layout = (props) => {
               >
                 Interview
               </Link>
-              <Link
+              {/* <Link
                 href="/discussion"
                 className="text-gray-400 hover:text-white"
               >
                 Discussion
-              </Link>
+              </Link> */}
               <Link href="/feedback" className="text-gray-400 hover:text-xhite">
                 Feedback
               </Link>

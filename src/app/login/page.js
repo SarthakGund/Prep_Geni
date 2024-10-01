@@ -13,21 +13,21 @@ export default function Page() {
   const [password, setPassword] = useState(""); // State for password
 
 
-  const {currentUser, isLoading, fetchUserInfo} = useUserStore()
+  // const {currentUser, isLoading, fetchUserInfo} = useUserStore()
 
 
-  useEffect(()=>{
-    const unSub = onAuthStateChanged(auth, (user)=>{
-      console.log(user.uid);
-      fetchUserInfo(user.uid);
-    });
+  // useEffect(()=>{
+  //   const unSub = onAuthStateChanged(auth, (user)=>{
+  //     console.log(user.uid);
+  //     fetchUserInfo(user.uid);
+  //   });
 
-    return () => {
-      unSub();
-    }
-  }, [fetchUserInfo]);
+  //   return () => {
+  //     unSub();
+  //   }
+  // }, [fetchUserInfo]);
 
-  console.log(currentUser);
+  // console.log(currentUser);
 
 
 
@@ -48,11 +48,11 @@ export default function Page() {
     // console.log("Password:", password);
   };
 
-  if(isLoading) return (
-    <div>
-      Loading
-    </div>
-  )
+  // if(isLoading) return (
+  //   <div>
+  //     Loading
+  //   </div>
+  // )
 
 
   return (
